@@ -1,0 +1,1 @@
+-- DDL ANSI SQL padronizado (compatível com SQLite e PostgreSQL)

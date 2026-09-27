@@ -1,0 +1,1 @@
+-- DDL especializado para PostgreSQL com tipos e constraints nativas

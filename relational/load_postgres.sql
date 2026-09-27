@@ -1,0 +1,1 @@
+-- Carga via tabelas de staging e comando COPY

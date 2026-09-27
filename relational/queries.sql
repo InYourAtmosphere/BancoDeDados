@@ -1,0 +1,1 @@
+-- Consultas analíticas SQL para validação e benchmark
