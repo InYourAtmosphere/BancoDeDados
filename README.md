@@ -8,8 +8,8 @@ Este repositório contém a implementação completa, scripts de ETL, modelagens
 
 ```text
 ProjetoBancoDados/
-├── data/                           # (não versionado) preenchido pelos scripts
-│   ├── raw/                        # CSVs originais do MovieLens 20M (movies, ratings, tags, links, genome-*)
+├── data/
+│   ├── raw/                        # CSVs originais do MovieLens (movie, rating, tag, link, genome)
 │   └── processed/                  # Documentos gerados em JSON Lines (movies.jsonl, ratings.jsonl)
 │
 ├── relational/
@@ -24,7 +24,6 @@ ProjetoBancoDados/
 │   └── queries.js                  # Consultas analíticas equivalentes em MQL e Aggregation Pipeline
 │
 ├── scripts/
-│   ├── download_data.py            # Download e extração do MovieLens 20M a partir do GroupLens
 │   ├── load_relational.py          # Script ETL Python para normalização 3FN e carga no banco relacional
 │   ├── transform.py                # Script ETL Python para desnormalização e geração de JSON Lines
 │   └── test_nosql_queries.py       # Validador autônomo das 4 consultas documentais
@@ -46,32 +45,6 @@ ProjetoBancoDados/
   pip install pandas pymongo
   ```
 * *(Opcional)* **Docker & Docker Compose** (para rodar os servidores oficiais de PostgreSQL e MongoDB).
-
----
-
-### Passo 0: Obter os Dados
-
-A base utilizada é o **[MovieLens 20M](https://grouplens.org/datasets/movielens/20m/)**, disponibilizada pelo GroupLens (Universidade de Minnesota). Por causa do tamanho (~190 MB compactados, com `ratings.csv` acima de 500 MB), os dados **não são versionados** no repositório.
-
-Para baixar e extrair os CSVs em `data/raw/`:
-```bash
-python scripts/download_data.py
-```
-*(Se os arquivos já existirem, o download é pulado. Para baixar novamente, utilize a flag `--force`).*
-
-Arquivos esperados em `data/raw/`:
-
-| Arquivo | Conteúdo |
-| :--- | :--- |
-| `movies.csv` | Filmes (`movieId`, `title`, `genres`) |
-| `ratings.csv` | Avaliações (`userId`, `movieId`, `rating`, `timestamp`) |
-| `tags.csv` | Tags livres atribuídas por usuários |
-| `links.csv` | Identificadores externos (IMDb e TMDb) |
-| `genome-scores.csv` | Relevância de cada tag do genoma para cada filme |
-| `genome-tags.csv` | Catálogo de tags do genoma |
-
-> **Licença:** o MovieLens permite uso acadêmico, mas exige citação e proíbe a redistribuição dos dados. Por isso os CSVs não são incluídos neste repositório.
-> F. Maxwell Harper and Joseph A. Konstan. 2015. *The MovieLens Datasets: History and Context.* ACM Transactions on Interactive Intelligent Systems (TiiS) 5, 4, Article 19. https://doi.org/10.1145/2827872
 
 ---
 
