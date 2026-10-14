@@ -16,6 +16,7 @@ echo ===========================================================================
 echo Diretorio atual: %CD%
 echo.
 echo Este script vai executar tudo de forma 100%% automatica para voce:
+echo  0. Baixar os dados brutos do MovieLens (data/raw/)
 echo  1. Criar o Banco Relacional normalizado (SQLite / 3FN)
 echo  2. Executar e exibir as Consultas SQL
 echo  3. Gerar os Documentos para o NoSQL (MongoDB)
@@ -23,6 +24,17 @@ echo  4. Executar e exibir as Consultas NoSQL Documentais
 echo.
 echo Pressione qualquer tecla para comecar...
 pause > nul
+
+echo.
+echo -------------------------------------------------------------------------------
+echo [ETAPA 0 de 4] Baixando os dados brutos do MovieLens (se necessario)...
+echo -------------------------------------------------------------------------------
+python scripts/download_data.py
+if %ERRORLEVEL% NEQ 0 (
+    echo [ERRO] Ocorreu uma falha no download dos dados. Verifique sua conexao.
+    pause
+    exit /b
+)
 
 echo.
 echo -------------------------------------------------------------------------------
