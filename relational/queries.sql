@@ -12,7 +12,7 @@ SELECT
     m.release_year,
     l.imdb_id,
     l.tmdb_id,
-    GROUP_CONCAT(DISTINCT g.name) AS genres,
+    string_agg(DISTINCT g.name, ',') AS genres,
     COUNT(r.rating) AS total_ratings,
     ROUND(AVG(r.rating), 2) AS avg_rating
 FROM movies m

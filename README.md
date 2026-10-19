@@ -1,6 +1,6 @@
 # Projeto de Banco de Dados: Análise Comparativa Relacional vs. NoSQL
 
-Este repositório contém a implementação completa, scripts de ETL, modelagens e análise comparativa entre um **SGBD Relacional (PostgreSQL e SQLite normalizados até a 3FN)** e um **SGBD Não-Relacional (MongoDB orientado a documentos)**, utilizando a base de dados pública **MovieLens 20M**.
+Este repositório contém a implementação completa, scripts de ETL, modelagens e análise comparativa entre um **SGBD Relacional (PostgreSQL normalizado até a 3FN)** e um **SGBD Não-Relacional (MongoDB orientado a documentos)**, utilizando a base de dados pública **MovieLens 20M**.
 
 ---
 
@@ -10,23 +10,19 @@ Este repositório contém a implementação completa, scripts de ETL, modelagens
 ProjetoBancoDados/
 ├── data/
 │   ├── raw/                        # CSVs originais do MovieLens (movie, rating, tag, link, genome)
-│   └── processed/                  # Documentos gerados em JSON Lines (movies.jsonl, ratings.jsonl)
 │
 ├── relational/
-│   ├── schema.sql                  # DDL ANSI SQL padronizado (compatível com SQLite e PostgreSQL)
-│   ├── postgres_schema.sql         # DDL especializado para PostgreSQL com tipos e constraints nativas
-│   ├── load_postgres.sql           # Script de carga ultrarrápida via staging e comando COPY
+│   ├── postgres_ddl.sql            # DDL do PostgreSQL com tipos e constraints nativas
 │   ├── queries.sql                 # Consultas analíticas SQL para validação e benchmark
-│   └── movielens.db                # Banco de dados SQLite gerado e validado (3FN)
 │
 ├── mongodb/
-│   ├── import.py                   # Script de conexão, importação em lote e indexação no MongoDB
 │   └── queries.js                  # Consultas analíticas equivalentes em MQL e Aggregation Pipeline
 │
 ├── scripts/
 │   ├── load_relational.py          # Script ETL Python para normalização 3FN e carga no banco relacional
-│   ├── transform.py                # Script ETL Python para desnormalização e geração de JSON Lines
-│   └── test_nosql_queries.py       # Validador autônomo das 4 consultas documentais
+│   ├── load_mongo.py               # Script ETL Python: CSVs brutos -> documentos -> MongoDB (bulk + índices)
+│   ├── test_sql_queries.py         # Executa as 4 consultas no PostgreSQL
+│   └── test_nosql_queries.py       # Executa as 4 consultas equivalentes no MongoDB
 │
 ├── docs/
 │   └── analise.md                  # Relatório técnico completo e aprofundado do Passo 3
@@ -40,63 +36,47 @@ ProjetoBancoDados/
 ## 🚀 Como Executar o Projeto
 
 ### Pré-requisitos
-* **Python 3.10+** com bibliotecas padrão (`sqlite3`) e pacotes:
+* **Python 3.10+** e pacotes:
   ```bash
-  pip install pandas pymongo
+  pip install pandas pymongo psycopg2-binary
   ```
-* *(Opcional)* **Docker & Docker Compose** (para rodar os servidores oficiais de PostgreSQL e MongoDB).
+* **Docker & Docker Compose** (servidores oficiais de PostgreSQL e MongoDB).
 
 ---
 
 ### Passo 1: Banco Relacional (Normalização e Carga)
 
-1. **Executar a Carga Relacional no SQLite**:
+1. **Subir o PostgreSQL e executar a Carga Relacional**:
    O script processa os CSVs em `data/raw/`, aplica a normalização até a **3FN** (atomizando gêneros, separando anos e catalogando tags unívocas) e popula o banco com integridade referencial:
    ```bash
+   docker compose up -d postgres
    python scripts/load_relational.py --sample-ratings 100000
    ```
    *(Para carregar todos os 20 milhões de ratings, utilize a flag `--all-ratings`).*
 
 2. **Testar as Consultas SQL de Benchmark**:
    ```bash
-   python -c "
-   import sqlite3, pandas as pd
-   conn = sqlite3.connect('relational/movielens.db')
-   with open('relational/queries.sql') as f:
-       for i, q in enumerate(f.read().split(';')[:-1], 1):
-           print(f'=== CONSULTA {i} ===\n', pd.read_sql_query(q, conn).head(3), '\n')
-   "
-   ```
-
-3. *(Opcional)* **Executar no PostgreSQL via Docker**:
-   ```bash
-   docker compose up -d postgres
-   docker exec -i movielens_postgres psql -U postgres -d movielens < relational/postgres_schema.sql
+   python scripts/test_sql_queries.py
    ```
 
 ---
 
 ### Passo 2: Banco Não-Relacional (MongoDB)
 
-1. **Transformar os Dados para o Formato Documental**:
-   Gera os arquivos `movies.jsonl` e `ratings.jsonl` em `data/processed/`, aplicando *embedding* de gêneros, links e métricas pré-computadas:
+1. **Subir o MongoDB e carregar os dados**:
+   Lê os CSVs de `data/raw/`, monta os documentos (*embedding* de gêneros, links, tags e métricas pré-computadas), insere em `movies` e `ratings` e cria os índices:
    ```bash
-   python scripts/transform.py --sample-ratings 100000
+   docker compose up -d mongodb
+   python scripts/load_mongo.py --sample-ratings 100000
    ```
+   *(Para carregar todos os 20 milhões de ratings, utilize a flag `--all-ratings`).*
 
-2. **Testar as Consultas Documentais (Modo Autônomo)**:
-   Valida instantaneamente a equivalência das consultas sobre os documentos JSON gerados sem necessidade de servidor ativo:
+2. **Testar as Consultas Documentais**:
    ```bash
    python scripts/test_nosql_queries.py
    ```
 
-3. **Importar para o MongoDB (Servidor / Docker)**:
-   ```bash
-   docker compose up -d mongodb
-   python mongodb/import.py
-   ```
-
-4. **Executar Consultas MQL via MongoDB Shell (`mongosh`)**:
+3. **Executar Consultas MQL via MongoDB Shell (`mongosh`)**:
    ```bash
    mongosh "mongodb://root:mongopassword@localhost:27017/movielens?authSource=admin" mongodb/queries.js
    ```

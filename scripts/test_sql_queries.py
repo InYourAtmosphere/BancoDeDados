@@ -2,25 +2,29 @@
 """
 scripts/test_sql_queries.py
 --------------------------------------------------------------------------------
-Executa as 4 consultas de benchmark do modelo relacional (3FN) no SQLite
+Executa as 4 consultas de benchmark do modelo relacional (3FN) no PostgreSQL
 e exibe os resultados formatados no terminal para comparação com o NoSQL.
 --------------------------------------------------------------------------------
 """
 
-import sqlite3
+import warnings
+
 import pandas as pd
+
+from common import connect
+
+warnings.filterwarnings("ignore", message="pandas only supports SQLAlchemy")
 
 pd.set_option("display.max_columns", None)
 pd.set_option("display.width", 1000)
 
 
 def main():
-    db_path = "relational/movielens.db"
-    conn = sqlite3.connect(db_path)
+    conn = connect()
 
     print("=" * 80)
-    print("DEMONSTRAÇÃO DAS CONSULTAS RELACIONAIS (3FN) - SQLITE / POSTGRESQL")
-    print(f"Banco de Dados: {db_path}")
+    print("DEMONSTRAÇÃO DAS CONSULTAS RELACIONAIS (3FN) - POSTGRESQL")
+    print("Banco de Dados: postgresql://localhost:5432/movielens")
     print("=" * 80)
 
     # Consulta 1
@@ -32,7 +36,7 @@ def main():
         m.release_year,
         l.imdb_id,
         l.tmdb_id,
-        GROUP_CONCAT(DISTINCT g.name) AS genres,
+        string_agg(DISTINCT g.name, ',') AS genres,
         COUNT(r.rating) AS total_ratings,
         ROUND(AVG(r.rating), 2) AS avg_rating
     FROM movies m

@@ -1,4 +1,4 @@
-# Análise Comparativa: Banco de Dados Relacional (PostgreSQL / SQLite) vs. Não-Relacional Orientado a Documentos (MongoDB)
+# Análise Comparativa: Banco de Dados Relacional (PostgreSQL) vs. Não-Relacional Orientado a Documentos (MongoDB)
 
 **Dataset Analisado:** MovieLens 20M (GroupLens Research)  
 **Contexto:** Estudo comparativo de engenharia de dados entre os paradigmas **Relacional (3FN)** e **NoSQL (Document Store)**.
@@ -19,7 +19,7 @@ O desafio arquitetural reside em como representar essas relações em dois parad
 
 ## 2. Modelagem e Estrutura de Dados
 
-### 2.1. Abordagem Relacional (PostgreSQL / SQLite - 3FN)
+### 2.1. Abordagem Relacional (PostgreSQL - 3FN)
 
 No modelo relacional, a base bruta foi submetida ao processo rigoroso de normalização:
 * **1ª Forma Normal (1FN)**: O atributo multivalorado `genres` (ex: `"Action|Adventure|Sci-Fi"`) foi atomizado em uma tabela catálogo `genres` e uma associativa $N:M$ `movie_genres`. O campo composto `title` foi quebrado em `title` e `release_year`.
@@ -137,7 +137,7 @@ SELECT
     m.release_year,
     l.imdb_id,
     l.tmdb_id,
-    GROUP_CONCAT(DISTINCT g.name) AS genres,
+    string_agg(DISTINCT g.name, ',') AS genres,
     COUNT(r.rating) AS total_ratings,
     ROUND(AVG(r.rating), 2) AS avg_rating
 FROM movies m
@@ -271,7 +271,7 @@ db.movies.find(
 
 ### 4.1. Esquema, Flexibilidade e Integridade
 
-| Critério | Relacional (PostgreSQL / SQLite) | NoSQL Documental (MongoDB) |
+| Critério | Relacional (PostgreSQL) | NoSQL Documental (MongoDB) |
 | :--- | :--- | :--- |
 | **Definição de Esquema** | **Schema-on-Write**: Esquema rígido, validado antes da gravação no disco. | **Schema-on-Read / Dynamic**: O banco aceita estruturas heterogêneas sem migrações de DDL. |
 | **Evolução de Atributos** | Exige `ALTER TABLE`, bloqueios de tabela ou preenchimento de colunas nulas. | Novos campos podem ser adicionados a documentos futuros sem alterar os existentes. |

@@ -17,9 +17,9 @@ echo Diretorio atual: %CD%
 echo.
 echo Este script vai executar tudo de forma 100%% automatica para voce:
 echo  0. Baixar os dados brutos do MovieLens (data/raw/)
-echo  1. Criar o Banco Relacional normalizado (SQLite / 3FN)
+echo  1. Criar o Banco Relacional normalizado (PostgreSQL / 3FN)
 echo  2. Executar e exibir as Consultas SQL
-echo  3. Gerar os Documentos para o NoSQL (MongoDB)
+echo  3. Carregar os Documentos no NoSQL (MongoDB)
 echo  4. Executar e exibir as Consultas NoSQL Documentais
 echo.
 echo Pressione qualquer tecla para comecar...
@@ -38,7 +38,7 @@ if %ERRORLEVEL% NEQ 0 (
 
 echo.
 echo -------------------------------------------------------------------------------
-echo [ETAPA 1 de 4] Criando e populando o Banco Relacional (SQLite / 3FN)...
+echo [ETAPA 1 de 4] Criando e populando o Banco Relacional (PostgreSQL / 3FN)...
 echo -------------------------------------------------------------------------------
 python scripts/load_relational.py
 if %ERRORLEVEL% NEQ 0 (
@@ -55,9 +55,9 @@ python scripts/test_sql_queries.py
 
 echo.
 echo -------------------------------------------------------------------------------
-echo [ETAPA 3 de 4] Gerando os Documentos NoSQL (JSON Lines para MongoDB)...
+echo [ETAPA 3 de 4] Carregando os Documentos NoSQL no MongoDB...
 echo -------------------------------------------------------------------------------
-python scripts/transform.py
+python scripts/load_mongo.py
 
 echo.
 echo -------------------------------------------------------------------------------

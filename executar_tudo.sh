@@ -21,9 +21,9 @@ echo "Diretorio atual: $PWD"
 echo
 echo "Este script vai executar tudo de forma 100% automatica para voce:"
 echo " 0. Baixar os dados brutos do MovieLens (data/raw/)"
-echo " 1. Criar o Banco Relacional normalizado (SQLite / 3FN)"
+echo " 1. Criar o Banco Relacional normalizado (PostgreSQL / 3FN)"
 echo " 2. Executar e exibir as Consultas SQL"
-echo " 3. Gerar os Documentos para o NoSQL (MongoDB)"
+echo " 3. Carregar os Documentos no NoSQL (MongoDB)"
 echo " 4. Executar e exibir as Consultas NoSQL Documentais"
 echo
 pausar "Pressione qualquer tecla para comecar..."
@@ -44,7 +44,7 @@ if ! "$PY" scripts/download_data.py; then
     exit 1
 fi
 
-etapa "[ETAPA 1 de 4] Criando e populando o Banco Relacional (SQLite / 3FN)..."
+etapa "[ETAPA 1 de 4] Criando e populando o Banco Relacional (PostgreSQL / 3FN)..."
 if ! "$PY" scripts/load_relational.py; then
     echo "[ERRO] Ocorreu uma falha na etapa 1. Verifique se o Python esta instalado."
     pausar "Pressione qualquer tecla para sair..."
@@ -54,8 +54,8 @@ fi
 etapa "[ETAPA 2 de 4] Executando as Consultas em SQL no Banco Relacional..."
 "$PY" scripts/test_sql_queries.py
 
-etapa "[ETAPA 3 de 4] Gerando os Documentos NoSQL (JSON Lines para MongoDB)..."
-"$PY" scripts/transform.py
+etapa "[ETAPA 3 de 4] Carregando os Documentos NoSQL no MongoDB..."
+"$PY" scripts/load_mongo.py
 
 etapa "[ETAPA 4 de 4] Executando as Consultas Equivalentes no Modelo NoSQL..."
 "$PY" scripts/test_nosql_queries.py
