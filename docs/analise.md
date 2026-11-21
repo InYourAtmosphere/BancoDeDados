@@ -271,38 +271,41 @@ ORDER BY tags_em_comum DESC, o.movie_id LIMIT 10;
 
 * Similaridade por vizinhança: dois filmes são parecidos se compartilham vizinhos (tags). No SQL é preciso primeiro **deduplicar** `user_movie_tags` (vários usuários aplicam a mesma tag ao mesmo filme); no grafo esse trabalho já foi feito na carga, com a aresta `HAS_TAG {count}`.
 
-### Consulta 7: Menor distância de Toy Story (1) até The Godfather (858) via tags em comum
+### Consulta 7: Sugestão por gênero — filmes parecidos com Toy Story (gêneros em comum, desempate por tags)
 
 ```sql
-WITH RECURSIVE
-movie_tag AS (SELECT DISTINCT movie_id, tag_id FROM user_movie_tags),
-busca (movie_id, nivel) AS (
-    SELECT 1, 0
-    UNION
-    SELECT b.movie_id, s.nivel + 1
-    FROM busca s
-    JOIN movie_tag a ON a.movie_id = s.movie_id
-    JOIN movie_tag b ON b.tag_id = a.tag_id
-    WHERE s.nivel < 4
+WITH movie_tag AS (SELECT DISTINCT movie_id, tag_id FROM user_movie_tags),
+por_tag AS (
+    SELECT b.movie_id, COUNT(*) AS tags
+    FROM movie_tag a
+    JOIN movie_tag b ON b.tag_id = a.tag_id AND b.movie_id <> a.movie_id
+    WHERE a.movie_id = 1
+    GROUP BY b.movie_id
 )
-SELECT MIN(nivel) AS distancia FROM busca WHERE movie_id = 858;
+SELECT m.movie_id, m.title, COUNT(DISTINCT mg.genre_id) AS generos_em_comum, t.tags AS tags_em_comum
+FROM por_tag t
+JOIN movies m        ON m.movie_id = t.movie_id
+JOIN movie_genres mg ON mg.movie_id = m.movie_id
+WHERE mg.genre_id IN (SELECT genre_id FROM movie_genres WHERE movie_id = 1)
+GROUP BY m.movie_id, m.title, t.tags
+ORDER BY generos_em_comum DESC, t.tags DESC, m.movie_id
+LIMIT 10;
 ```
 
 ```cypher
-MATCH (a:Movie {movie_id: 1}), (b:Movie {movie_id: 858})
-MATCH p = shortestPath((a)-[:HAS_TAG*..10]-(b))
-RETURN length(p) / 2 AS distancia,
-       [n IN nodes(p) | coalesce(n.title, '#' + n.name)] AS caminho;
+MATCH (:Movie {movie_id: 1})-[:HAS_TAG]->(t:Tag)<-[:HAS_TAG]-(m:Movie)
+WITH m, count(t) AS tags_em_comum
+MATCH (:Movie {movie_id: 1})-[:IN_GENRE]->(g:Genre)<-[:IN_GENRE]-(m)
+RETURN m.movie_id, m.title, count(g) AS generos_em_comum, tags_em_comum
+ORDER BY generos_em_comum DESC, tags_em_comum DESC, m.movie_id
+LIMIT 10;
 ```
 
-Esta é a consulta que melhor expõe a diferença entre os paradigmas:
+Sugestão de conteúdo: "quem é parecido com Toy Story?", medido por **gêneros em comum** e, no empate, por **tags em comum**. A pergunta cruza duas vizinhanças diferentes do mesmo filme (gêneros e tags):
 
-* **SQL não tem busca em grafo nativa**. A CTE recursiva simula uma busca em largura, mas:
-  1. **Não para ao encontrar o destino**: calcula todos os níveis até o limite (`nivel < 4`) e só depois filtra.
-  2. **Não tem um conjunto global de "já visitados"**: o `UNION` só descarta linhas idênticas `(filme, nível)`, então o mesmo filme é reprocessado em cada nível.
-  3. **Não devolve o caminho**: para isso seria preciso carregar um `ARRAY` com os filmes visitados em cada linha. Isso torna toda linha única, desativa a deduplicação do `UNION` e a consulta passa a crescer **exponencialmente** (cada caminho distinto vira uma linha). Na nossa primeira versão, com o caminho, a consulta não terminava em 60 segundos.
-* **O Neo4j executa `shortestPath` como um algoritmo nativo** (busca em largura bidirecional), que para no primeiro encontro e devolve o caminho completo, com as tags intermediárias.
-* A profundidade máxima também é diferente: 4 níveis no SQL (mais que isso fica caro) contra 10 no Cypher.
+* **No grafo**, são dois caminhos de 2 saltos que partem do mesmo nó: `Movie → Tag → Movie` e `Movie → Genre → Movie`. A consulta é o desenho desses caminhos.
+* **No SQL**, a vizinhança por tags exige o *self-join* da tabela de tags (deduplicada), que é a parte cara; depois ainda é preciso juntar `movie_genres` e agrupar. São duas agregações encadeadas sobre tabelas de junção.
+* O Neo4j só toca nas arestas dos filmes que realmente são vizinhos de Toy Story; o SQL materializa o join de tags e só depois filtra por gênero.
 
 ---
 
@@ -316,9 +319,9 @@ O padrão esperado, observado num teste preliminar com **dados sintéticos** no 
 
 * **Consultas 1 a 4 (busca pontual e agregações)**: o **PostgreSQL** é mais rápido ou empata. Agregar sobre a base inteira favorece o armazenamento em tabelas contíguas, e as buscas pontuais são resolvidas por índices B-Tree nos dois bancos.
 * **Consultas 5 e 6 (1 a 2 saltos)**: o **PostgreSQL continua competitivo** (no teste, ficou próximo do Neo4j na 6 e foi mais rápido na 5). Com poucos saltos, junções indexadas são eficientes, e a vantagem do grafo aqui é a legibilidade da consulta, não o tempo.
-* **Consulta 7 (caminho de tamanho variável)**: o **Neo4j** é **duas ordens de grandeza** mais rápido e ainda devolve o caminho, que o SQL não consegue devolver a um custo razoável.
+* **Consulta 7 (sugestão por gênero e tags)**: o **Neo4j** é várias vezes mais rápido, porque a recomendação é a combinação de duas vizinhanças (gêneros e tags) do mesmo filme.
 
-A conclusão honesta é que o grafo **não** é "mais rápido" em geral: ele é mais rápido exatamente quando a pergunta é sobre **relações de profundidade variável**.
+A conclusão honesta é que o grafo **não** é "mais rápido" em geral: ele é mais rápido quando a pergunta cruza **vizinhanças de relacionamentos** (tags, gêneros), como nas recomendações.
 
 ---
 

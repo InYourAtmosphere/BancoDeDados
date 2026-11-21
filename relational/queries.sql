@@ -116,27 +116,29 @@ ORDER BY tags_em_comum DESC, m.movie_id
 LIMIT 10;
 
 
--- name: c7_caminho
--- titulo: Consulta 7 - Menor distância de Toy Story (1) até The Godfather (858) via tags em comum
--- Busca em largura com CTE recursiva. O UNION (sem ALL) descarta pares (filme, nível)
--- repetidos, o que mantém cada nível do tamanho do catálogo. O preço: para deduplicar não
--- dá para carregar o caminho percorrido, então só a distância é devolvida. Guardar o caminho
--- num ARRAY torna cada linha única e a consulta explode exponencialmente (cada caminho
--- distinto vira uma linha). Além disso, a CTE não para ao encontrar o destino: ela
--- calcula todos os níveis até o limite e só depois filtra.
-WITH RECURSIVE
-movie_tag AS (
+-- name: c7_sugestao_genero
+-- titulo: Consulta 7 - Sugestão por gênero: filmes parecidos com Toy Story (gêneros em comum, desempate por tags)
+-- Candidatos: filmes que compartilham tags com Toy Story (self-join da tabela de tags, já
+-- deduplicada). Ranking: nº de gêneros em comum e, no empate, nº de tags em comum.
+WITH movie_tag AS (
     SELECT DISTINCT movie_id, tag_id FROM user_movie_tags
 ),
-busca (movie_id, nivel) AS (
-    SELECT 1, 0
-    UNION
-    SELECT b.movie_id, s.nivel + 1
-    FROM busca s
-    JOIN movie_tag a ON a.movie_id = s.movie_id
-    JOIN movie_tag b ON b.tag_id = a.tag_id
-    WHERE s.nivel < 4
+por_tag AS (
+    SELECT b.movie_id, COUNT(*) AS tags
+    FROM movie_tag a
+    JOIN movie_tag b ON b.tag_id = a.tag_id AND b.movie_id <> a.movie_id
+    WHERE a.movie_id = 1
+    GROUP BY b.movie_id
 )
-SELECT MIN(nivel) AS distancia
-FROM busca
-WHERE movie_id = 858;
+SELECT
+    m.movie_id,
+    m.title,
+    COUNT(DISTINCT mg.genre_id) AS generos_em_comum,
+    t.tags                      AS tags_em_comum
+FROM por_tag t
+JOIN movies m        ON m.movie_id = t.movie_id
+JOIN movie_genres mg ON mg.movie_id = m.movie_id
+WHERE mg.genre_id IN (SELECT genre_id FROM movie_genres WHERE movie_id = 1)
+GROUP BY m.movie_id, m.title, t.tags
+ORDER BY generos_em_comum DESC, t.tags DESC, m.movie_id
+LIMIT 10;

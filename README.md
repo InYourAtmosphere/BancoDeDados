@@ -102,7 +102,7 @@ MATCH p = (:Movie {movie_id: 1})-[:HAS_TAG]->(:Tag)<-[:HAS_TAG]-(:Movie) RETURN 
 | 4 | Filmes com as tags `pixar` / `animation` | — |
 | 5 | "Quem gostou deste também gostou de..." | Grafo (legibilidade) |
 | 6 | Filmes com mais tags em comum | Grafo (vizinhança) |
-| 7 | Menor caminho entre dois filmes via tags | **Grafo** (caminho de tamanho variável) |
+| 7 | Sugestão por gênero (desempate por tags) | **Grafo** (vizinhanças cruzadas) |
 
 ---
 

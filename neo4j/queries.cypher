@@ -71,11 +71,12 @@ ORDER BY tags_em_comum DESC, movie_id
 LIMIT 10;
 
 
-// name: c7_caminho
-// titulo: Consulta 7 - Menor caminho de Toy Story (1) até The Godfather (858) via tags em comum
-// shortestPath faz uma busca em largura bidirecional nativa, sem materializar todos os caminhos.
-// distancia = número de "saltos" entre filmes (cada salto passa por uma tag).
-MATCH (a:Movie {movie_id: 1}), (b:Movie {movie_id: 858})
-MATCH p = shortestPath((a)-[:HAS_TAG*..10]-(b))
-RETURN length(p) / 2 AS distancia,
-       [n IN nodes(p) | coalesce(n.title, '#' + n.name)] AS caminho;
+// name: c7_sugestao_genero
+// titulo: Consulta 7 - Sugestão por gênero: filmes parecidos com Toy Story (gêneros em comum, desempate por tags)
+// Caminhos Movie -> Tag -> Movie e Movie -> Genre -> Movie: o padrão desenhado é a própria recomendação.
+MATCH (:Movie {movie_id: 1})-[:HAS_TAG]->(t:Tag)<-[:HAS_TAG]-(m:Movie)
+WITH m, count(t) AS tags_em_comum
+MATCH (:Movie {movie_id: 1})-[:IN_GENRE]->(g:Genre)<-[:IN_GENRE]-(m)
+RETURN m.movie_id AS movie_id, m.title AS title, count(g) AS generos_em_comum, tags_em_comum
+ORDER BY generos_em_comum DESC, tags_em_comum DESC, movie_id
+LIMIT 10;
